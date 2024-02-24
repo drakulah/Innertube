@@ -1,0 +1,5 @@
+package utils
+
+fun eatFiveStarDoNothing() {
+
+}

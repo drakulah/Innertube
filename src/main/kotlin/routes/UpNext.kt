@@ -1,0 +1,20 @@
+package routes
+
+import client.Client
+import declare.Endpoint
+import declare.WebReqBody
+import declare.WebReqBodyWithBrowse
+import declare.WebReqBodyWithVidListId
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+
+suspend fun Client.upNext(videoId: String, playlistId: String) {
+	val res: JsonElement = this.webHttpClient.post(Endpoint.next) {
+		setBody(
+			Json.encodeToString(WebReqBodyWithVidListId(videoId, playlistId, this@upNext.webContext))
+		)
+	}.body()
+}
