@@ -5,34 +5,37 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import utils.removeEmptyNTrim
 
-fun JsonElement?.path(p: String): JsonElement? {
-	var t: JsonElement? = this
+fun JsonElement?.path(path: String): JsonElement? {
+	var retJsonElem: JsonElement? = this
 
-	for (e in p.split('.').removeEmptyNTrim()) {
-		if (e.matches(Regex("\\[\\d+\\]$"))) {
-			var i = 0
+	path.split('.')
+		.removeEmptyNTrim()
+		.forEach { key ->
 
-			for (f in e.split('[').removeEmptyNTrim()) {
-				val g = if (i != 0) {
-					f.slice((f.length - 1) until f.length)
-				} else {
-					f
-				}
-
-				if (g.isEmpty()) continue
-
-				t = if (g.matches(Regex("\\d+"))) {
-					t?.jsonArray?.get(g.toInt())
-				} else {
-					t?.jsonObject?.get(g)
-				}
-
-				i++
+			if (!Regex("\\[\\d+]\$").containsMatchIn(key)) {
+				retJsonElem = retJsonElem?.jsonObject?.get(key)
+				return@forEach
 			}
-		} else {
-			t = t?.jsonObject?.get(e)
-		}
-	}
 
-	return t
+			key.split('[')
+				.removeEmptyNTrim()
+				.forEachIndexed { index, param ->
+
+					if (index == 0) {
+						retJsonElem = retJsonElem?.jsonObject?.get(param)
+						return@forEachIndexed
+					}
+
+					val maybeArrIndex = param.removeSuffix("]")
+
+					if (!Regex("\\d+").matches(maybeArrIndex)) {
+						retJsonElem = retJsonElem?.jsonObject?.get(maybeArrIndex)
+						return@forEachIndexed
+					}
+
+					retJsonElem = retJsonElem?.jsonArray?.get(maybeArrIndex.toInt())
+				}
+		}
+
+	return retJsonElem
 }

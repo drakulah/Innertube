@@ -1,5 +1,6 @@
-package parser.partial.route
+package parser
 
+import json.maybeStringVal
 import json.path
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -9,6 +10,7 @@ import parser.partial.chunk.*
 import parser.partial.preview.*
 import utils.eatFiveStarDoNothing
 import utils.mix
+import utils.nullifyIfEmpty
 import utils.removeEmpty
 
 @Serializable
@@ -25,23 +27,28 @@ data class AlbumListContainer(
 )
 
 @Serializable
-data class AlbumRoute(
-	val title: List<RunsText>,
-	val subtitle: List<RunsText>,
-	val secondSubtitle: List<RunsText>,
-	val description: List<RunsText>,
+data class Album(
+	val title: String,
+	val desc: String?,
+	val year: String?,
+	val trackCount: String?,
+	val albumType: AlbumType,
+	val albumDuration: String?,
+	val uploaders: List<Uploader>,
 	val thumbnail: List<ThumbnailInfo>,
 	val menu: List<Menu>,
 	val track: List<TrackPreview>,
 	val others: List<AlbumListContainer>
 )
 
-fun RouteParser.parseAlbumRoute(obj: JsonElement?): AlbumRoute? {
+fun ResponseParser.parseAlbum(obj: JsonElement?): Album? {
+
 	val track = arrayListOf<TrackPreview>()
 	val others = arrayListOf<AlbumListContainer>()
 
-	val title = ChunkParser.parseRunsText(obj.path("header.musicDetailHeaderRenderer.title.runs"))
-		.removeEmpty()
+	val title = (obj.path("title.runs[0].text")
+		?: obj.path("flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text")
+			).maybeStringVal?.nullifyIfEmpty() ?: return null
 
 	val subtitle = ChunkParser.parseRunsText(obj.path("header.musicDetailHeaderRenderer.subtitle.runs"))
 		.mix(ChunkParser.parseRunsText(obj.path("header.musicDetailHeaderRenderer.secondTitle.runs")))
@@ -50,12 +57,24 @@ fun RouteParser.parseAlbumRoute(obj: JsonElement?): AlbumRoute? {
 	val secondSubtitle = ChunkParser.parseRunsText(obj.path("header.musicDetailHeaderRenderer.secondSubtitle.runs"))
 		.removeEmpty()
 
-	val description = ChunkParser.parseRunsText(obj.path("header.musicDetailHeaderRenderer.description.runs"))
-		.removeEmpty()
+	val menu = ChunkParser.parseMenu(obj.path("header.musicDetailHeaderRenderer.menu"))
+	val thumbnail = ChunkParser.parseThumbnail(obj.path("header.musicDetailHeaderRenderer.thumbnail"))
+	val description = obj.path("header.musicDetailHeaderRenderer.description.runs").maybeStringVal?.nullifyIfEmpty()
 
-	val menu = ChunkParser.parseMenu(obj.path("menu"))
+	val fuck = obj?.jsonObject?.get("contents")
+		?.jsonObject?.get("singleColumnBrowseResultsRenderer")
+		?.jsonObject?.get("tabs")
+		?.jsonArray?.get(0)
+		?.jsonObject?.get("tabRenderer")
+		?.jsonObject?.get("content")
+		?.jsonObject?.get("sectionListRenderer")
+		?.jsonObject?.get("contents")
+		?.jsonArray?.get(0)
+		?.jsonObject?.get("musicShelfRenderer")
+		?.jsonObject?.get("contents")
+		.toString()
 
-	val thumbnail = ChunkParser.parseThumbnail(obj.path("thumbnail"))
+	// println(fuck)
 
 	obj.path("contents.singleColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents")
 		?.jsonArray
@@ -72,9 +91,13 @@ fun RouteParser.parseAlbumRoute(obj: JsonElement?): AlbumRoute? {
 						ChunkParser.parseThumbnail(sharedContainer.path("header.musicCarouselShelfBasicHeaderRenderer.thumbnail"))
 					)
 
+					var c = 0
+
 					sharedContainer.path("contents")
 						?.jsonArray
 						?.forEach { eachItem ->
+
+							println(++c)
 
 							val itemRenderer =
 								eachItem.path("musicTwoRowItemRenderer") ?: eachItem.path("musicResponsiveListItemRenderer")
@@ -82,6 +105,8 @@ fun RouteParser.parseAlbumRoute(obj: JsonElement?): AlbumRoute? {
 								eachItem.path("musicTwoRowItemRenderer.navigationEndpoint")
 									?: eachItem.path("musicResponsiveListItemRenderer.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].navigationEndpoint")
 							)
+
+							println(itemType)
 
 							when (index) {
 								0 -> {
@@ -119,9 +144,9 @@ fun RouteParser.parseAlbumRoute(obj: JsonElement?): AlbumRoute? {
 				}
 		}
 
-	if (title.isEmpty() || track.isEmpty()) return null
+	if (title.isEmpty()) return null
 
-	return AlbumRoute(
+	return Album(
 		title,
 		subtitle,
 		secondSubtitle,

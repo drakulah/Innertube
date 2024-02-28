@@ -10,25 +10,28 @@ import kotlinx.serialization.json.jsonArray
 sealed class Menu
 
 @Serializable
-data class Radio(
+data class RadioMenuItem(
 	val playlistId: String
 ) : Menu()
 
 @Serializable
-data class Album(
+data class AlbumMenuItem(
 	val browseId: String
 ) : Menu()
 
 @Serializable
-data class Artist(
+data class ArtistMenuItem(
 	val browseId: String
 ) : Menu()
 
 @Serializable
-data class Credit(
+data class CreditMenuItem(
 	val browseId: String
 ) : Menu()
 
+/**
+ * Provide __Object.menu__
+ */
 fun ChunkParser.parseMenu(obj: JsonElement?): List<Menu> {
 	val menu = arrayListOf<Menu>()
 
@@ -37,26 +40,26 @@ fun ChunkParser.parseMenu(obj: JsonElement?): List<Menu> {
 
 			when (navItem.path("text.runs[0].text")?.maybeStringVal?.trim()?.lowercase()) {
 				"start radio" -> menu.add(
-					Radio(
+					RadioMenuItem(
 						playlistId = navItem.path("navigationEndpoint.watchEndpoint.playlistId")?.maybeStringVal
 							?: navItem.path("navigationEndpoint.watchPlaylistEndpoint.playlistId")?.maybeStringVal ?: return@forEach,
 					)
 				)
 
 				"go to album" -> menu.add(
-					Album(
+					AlbumMenuItem(
 						browseId = navItem.path("navigationEndpoint.browseEndpoint.browseId")?.maybeStringVal ?: return@forEach,
 					)
 				)
 
 				"go to artist" -> menu.add(
-					Artist(
+					ArtistMenuItem(
 						browseId = navItem.path("navigationEndpoint.browseEndpoint.browseId")?.maybeStringVal ?: return@forEach,
 					)
 				)
 
 				"view song credits" -> menu.add(
-					Credit(
+					CreditMenuItem(
 						browseId = navItem.path("navigationEndpoint.browseEndpoint.browseId")?.maybeStringVal ?: return@forEach,
 					)
 				)

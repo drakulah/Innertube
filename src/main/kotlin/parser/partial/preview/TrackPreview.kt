@@ -1,37 +1,140 @@
 package parser.partial.preview
 
+import json.maybeStringVal
 import json.path
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.jsonObject
 import parser.partial.chunk.*
-import utils.removeEmpty
+import utils.*
 
 @Serializable
 data class TrackPreview(
 	val id: String,
-	val type: String,
-	val title: List<RunsText>,
-	val subtitle: List<RunsText>,
+	val title: String,
+	val durationText: String?,
+	val playCount: String?,
+	val album: AlbumBasicInfo?,
 	val menu: List<Menu>,
+	val uploaders: List<Uploader>,
 	val thumbnails: List<ThumbnailInfo>
-): PreviewParser.ContentPreview()
+) : PreviewParser.ContentPreview()
 
 fun PreviewParser.parseTrackPreview(obj: JsonElement?): TrackPreview? {
-	return obj?.path("musicTwoColumnItemRenderer")?.jsonObject?.let {
-		val thumbnails = ChunkParser.parseThumbnail(it["thumbnail"])
-		val title = ChunkParser.parseRunsText(it.path("title.runs")).removeEmpty()
-		val subtitle = ChunkParser.parseRunsText(it.path("subtitle.runs")).removeEmpty()
-		val navEndpoint = ChunkParser.parseNavEndpoint(it.path("navigationEndpoint"))
-		val menu = ChunkParser.parseMenu(it.path("menu"))
 
-		if (title.isEmpty()
-			|| navEndpoint?.id?.isEmpty() == true
-			|| navEndpoint?.type?.isEmpty() == true
-		) return@let null
+	val uploaders = arrayListOf<Uploader>()
 
-		return@let TrackPreview(
-			id = navEndpoint?.id!!, type = navEndpoint.type, title, subtitle, menu, thumbnails
-		)
+	val navEndpoint = ChunkParser.parseNavEndpoint(
+		obj.path("title.runs[0].navigationEndpoint") ?:
+		obj.path("navigationEndpoint")
+	)
+
+	var playCount: String? = null
+	var durationText: String? = null
+	var album: AlbumBasicInfo? = null
+	var title = (obj.path("title.runs[0].text") ?:
+	obj.path("flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text")
+			).maybeStringVal?.nullifyIfEmpty() ?: return null
+
+	var id = navEndpoint?.id?.nullifyIfEmpty() ?: return null
+	val menu = ChunkParser.parseMenu(obj.path("menu"))
+	val thumbnails = ChunkParser.parseThumbnail(obj.path("thumbnailRenderer") ?: obj.path("thumbnail"))
+
+	mixedJsonArray(
+		obj.path("subtitle.runs"),
+		obj.path("lengthText.runs"),
+		obj.path("secondTitle.runs"),
+		obj.path("longBylineText.runs"),
+		obj.path("shortBylineText.runs"),
+		obj.path("flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs")
+	).forEach {
+		val t_type = ChunkParser.parseItemType(it.path("navigationEndpoint"))
+		val t_text = it.path("text")?.maybeStringVal?.trim() ?: return@forEach
+
+		when (t_type) {
+			ItemType.ArtistPreview, ItemType.UserChannelPreview -> {
+				if (t_text.isEmpty()) return@forEach
+				uploaders.add(
+					Uploader(
+						title = t_text,
+						isArtist = t_type == ItemType.ArtistPreview,
+						browseId = ChunkParser.parseNavEndpoint(it)?.id
+					)
+				)
+			}
+			ItemType.Song, ItemType.Video -> {
+				title = t_text
+				id = ChunkParser.parseNavEndpoint(it.path("navigationEndpoint"))?.id?.nullifyIfEmpty() ?: return@forEach
+			}
+			ItemType.AlbumPreview -> {
+				album = AlbumBasicInfo(
+					title = t_text,
+					browseId = ChunkParser.parseNavEndpoint(it.path("navigationEndpoint"))?.id?.nullifyIfEmpty()
+				)
+			}
+			else -> {
+				when {
+					t_text.isDurationText() -> durationText = t_text
+					t_text.isTrackPlays() -> playCount = t_text
+				}
+			}
+		}
 	}
+
+	mixedJsonArray(
+		obj.path("flexColumns"),
+		obj.path("fixedColumns")
+	).forEach { secObj ->
+		mixedJsonArray(
+			secObj.path("subtitle.runs"),
+			secObj.path("lengthText.runs"),
+			secObj.path("secondTitle.runs"),
+			secObj.path("longBylineText.runs"),
+			secObj.path("shortBylineText.runs"),
+			secObj.path("flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs")
+		).forEach {
+			val t_type = ChunkParser.parseItemType(it.path("navigationEndpoint"))
+			val t_text = it.path("text")?.maybeStringVal?.trim() ?: return@forEach
+
+			when (t_type) {
+				ItemType.ArtistPreview, ItemType.UserChannelPreview -> {
+					if (t_text.isEmpty()) return@forEach
+					uploaders.add(
+						Uploader(
+							title = t_text,
+							isArtist = t_type == ItemType.ArtistPreview,
+							browseId = ChunkParser.parseNavEndpoint(it)?.id
+						)
+					)
+				}
+				ItemType.Song, ItemType.Video -> {
+					title = t_text
+					id = ChunkParser.parseNavEndpoint(it.path("navigationEndpoint"))?.id?.nullifyIfEmpty() ?: return@forEach
+				}
+				ItemType.AlbumPreview -> {
+					album = AlbumBasicInfo(
+						title = t_text,
+						browseId = ChunkParser.parseNavEndpoint(it.path("navigationEndpoint"))?.id?.nullifyIfEmpty()
+					)
+				}
+				else -> {
+					when {
+						t_text.isDurationText() -> durationText = t_text
+						t_text.isTrackPlays() -> playCount = t_text
+					}
+				}
+			}
+		}
+	}
+
+	return TrackPreview(
+		id = id,
+		title = title,
+		playCount = playCount,
+		durationText = durationText,
+		album = album,
+		menu = menu,
+		uploaders = uploaders,
+		thumbnails = thumbnails
+	)
+
 }

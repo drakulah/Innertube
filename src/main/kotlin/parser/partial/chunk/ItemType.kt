@@ -16,6 +16,9 @@ enum class ItemType {
 	UserChannelPreview
 }
 
+/**
+ * Provide __Object.navigationEndpoint__
+ */
 fun ChunkParser.parseItemType(obj: JsonElement?): ItemType? {
 	return when ((obj.path("browseEndpoint.browseEndpointContextSupportedConfigs.browseEndpointContextMusicConfig.pageType")
 		?: obj.path("watchEndpoint.watchEndpointMusicSupportedConfigs.watchEndpointMusicConfig.musicVideoType"))

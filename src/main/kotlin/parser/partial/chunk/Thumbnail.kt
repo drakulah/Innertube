@@ -13,6 +13,9 @@ data class ThumbnailInfo(
 	val height: Int
 )
 
+/**
+ * Provide __Object.background__ or __Object.thumbnail__ or __Object.thumbnailRenderer__
+ */
 fun ChunkParser.parseThumbnail(obj: JsonElement?): List<ThumbnailInfo> {
 	val thumbnailArr = arrayListOf<ThumbnailInfo>()
 

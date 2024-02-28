@@ -11,6 +11,9 @@ data class NavEndpoint(
 	val type: String
 )
 
+/**
+ * Provide __Object.navigationEndpoint__
+ */
 fun ChunkParser.parseNavEndpoint(obj: JsonElement?): NavEndpoint? {
 	return obj.path("watchEndpoint")?.let {
 		NavEndpoint(
