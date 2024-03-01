@@ -5,7 +5,9 @@ import json.path
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import parser.partial.chunk.*
-import utils.*
+import utils.isSubscriberCount
+import utils.mixedJsonArray
+import utils.nullifyIfEmpty
 
 @Serializable
 data class Uploader(
@@ -25,16 +27,16 @@ data class ArtistPreview(
 
 fun PreviewParser.parseArtistPreview(obj: JsonElement?): ArtistPreview? {
 
-	val navEndpoint = ChunkParser.parseNavEndpoint(
-		obj.path("title.runs[0].navigationEndpoint") ?: obj.path("navigationEndpoint")
-	)
+	var subscribersCount: String? = null
 
 	val title = (obj.path("title.runs[0].text")
 		?: obj.path("flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text")
-	).maybeStringVal?.nullifyIfEmpty() ?: return null
+			).maybeStringVal?.nullifyIfEmpty() ?: return null
 
-	var subscribersCount: String? = null
-	val browseId = navEndpoint?.id?.nullifyIfEmpty() ?: return null
+	val browseId = ChunkParser.parseId(
+		obj.path("title.runs[0].navigationEndpoint") ?: obj.path("navigationEndpoint")
+	) ?: return null
+
 	val menu = ChunkParser.parseMenu(obj.path("menu"))
 	val thumbnails = ChunkParser.parseThumbnail(obj.path("thumbnailRenderer") ?: obj.path("thumbnail"))
 
@@ -43,8 +45,9 @@ fun PreviewParser.parseArtistPreview(obj: JsonElement?): ArtistPreview? {
 		obj.path("secondTitle.runs"),
 		obj.path("flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs")
 	).forEach {
-		val t_text = it.path("text")?.maybeStringVal?.trim() ?: return@forEach
-		if (t_text.isSubscriberCount()) subscribersCount = t_text
+		it.path("text")?.maybeStringVal?.nullifyIfEmpty()?.let { txt ->
+			if (txt.isSubscriberCount()) subscribersCount = txt
+		}
 	}
 
 	return ArtistPreview(

@@ -8,15 +8,13 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import parser.partial.chunk.*
 import parser.partial.preview.*
-import utils.eatFiveStarDoNothing
-import utils.mix
-import utils.nullifyIfEmpty
-import utils.removeEmpty
+import utils.*
 
 @Serializable
 data class AlbumListTopic(
-	val title: List<RunsText>,
-	val subtitle: List<RunsText>,
+	val title: String,
+	val subtitle: String?,
+	val browseId: String?,
 	val thumbnail: List<ThumbnailInfo>
 )
 
@@ -29,9 +27,9 @@ data class AlbumListContainer(
 @Serializable
 data class Album(
 	val title: String,
-	val desc: String?,
-	val year: String?,
+	val yearText: String?,
 	val trackCount: String?,
+	val description: String?,
 	val albumType: AlbumType,
 	val albumDuration: String?,
 	val uploaders: List<Uploader>,
@@ -45,36 +43,50 @@ fun ResponseParser.parseAlbum(obj: JsonElement?): Album? {
 
 	val track = arrayListOf<TrackPreview>()
 	val others = arrayListOf<AlbumListContainer>()
+	val uploaders = arrayListOf<Uploader>()
 
-	val title = (obj.path("title.runs[0].text")
-		?: obj.path("flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text")
-			).maybeStringVal?.nullifyIfEmpty() ?: return null
+	var yearText: String? = null
+	var trackCount: String? = null
+	var albumDuration: String? = null
+	var albumType: AlbumType = AlbumType.Album
 
-	val subtitle = ChunkParser.parseRunsText(obj.path("header.musicDetailHeaderRenderer.subtitle.runs"))
-		.mix(ChunkParser.parseRunsText(obj.path("header.musicDetailHeaderRenderer.secondTitle.runs")))
-		.removeEmpty()
-
-	val secondSubtitle = ChunkParser.parseRunsText(obj.path("header.musicDetailHeaderRenderer.secondSubtitle.runs"))
-		.removeEmpty()
-
+	val title =
+		obj.path("header.musicDetailHeaderRenderer.title.runs[0].text").maybeStringVal?.nullifyIfEmpty() ?: return null
+	val description =
+		obj.path("header.musicDetailHeaderRenderer.description.runs[0].text").maybeStringVal?.nullifyIfEmpty()
 	val menu = ChunkParser.parseMenu(obj.path("header.musicDetailHeaderRenderer.menu"))
 	val thumbnail = ChunkParser.parseThumbnail(obj.path("header.musicDetailHeaderRenderer.thumbnail"))
-	val description = obj.path("header.musicDetailHeaderRenderer.description.runs").maybeStringVal?.nullifyIfEmpty()
 
-	val fuck = obj?.jsonObject?.get("contents")
-		?.jsonObject?.get("singleColumnBrowseResultsRenderer")
-		?.jsonObject?.get("tabs")
-		?.jsonArray?.get(0)
-		?.jsonObject?.get("tabRenderer")
-		?.jsonObject?.get("content")
-		?.jsonObject?.get("sectionListRenderer")
-		?.jsonObject?.get("contents")
-		?.jsonArray?.get(0)
-		?.jsonObject?.get("musicShelfRenderer")
-		?.jsonObject?.get("contents")
-		.toString()
+	mixedJsonArray(
+		obj.path("header.musicDetailHeaderRenderer.subtitle.runs"),
+		obj.path("header.musicDetailHeaderRenderer.secondSubtitle.runs"),
+	).forEach {
 
-	// println(fuck)
+		val tempText = it.path("text").maybeStringVal.nullifyIfEmpty() ?: return@forEach
+		val tempType = ChunkParser.parseItemType(it.path("navigationEndpoint"))
+
+		when (tempType) {
+			ItemType.ArtistPreview, ItemType.UserChannelPreview -> {
+				if (tempText.isEmpty()) return@forEach
+				uploaders.add(
+					Uploader(
+						title = tempText,
+						isArtist = tempType == ItemType.ArtistPreview,
+						browseId = ChunkParser.parseId(it.path("navigationEndpoint"))
+					)
+				)
+			}
+
+			else -> {
+				when {
+					tempText.isYearText() -> yearText = tempText
+					tempText.isTrackCount() -> trackCount = tempText
+					tempText.isPlaylistDuration() -> albumDuration = tempText
+					tempText.isAlbumType() -> albumType = tempText.toAlbumType()
+				}
+			}
+		}
+	}
 
 	obj.path("contents.singleColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents")
 		?.jsonArray
@@ -85,19 +97,21 @@ fun ResponseParser.parseAlbum(obj: JsonElement?): Album? {
 			(eachComp.path("musicCarouselShelfRenderer") ?: eachComp.path("musicShelfRenderer"))
 				?.jsonObject
 				?.let { sharedContainer ->
-					val topic = AlbumListTopic(
-						ChunkParser.parseRunsText(sharedContainer.path("header.musicCarouselShelfBasicHeaderRenderer.title.runs")),
-						ChunkParser.parseRunsText(sharedContainer.path("header.musicCarouselShelfBasicHeaderRenderer.strapline.runs")),
-						ChunkParser.parseThumbnail(sharedContainer.path("header.musicCarouselShelfBasicHeaderRenderer.thumbnail"))
-					)
 
-					var c = 0
+					val topicTitle =
+						sharedContainer.path("header.musicCarouselShelfBasicHeaderRenderer.title.runs[0].text").maybeStringVal?.nullifyIfEmpty()
+					val topicSubtitle =
+						sharedContainer.path("header.musicCarouselShelfBasicHeaderRenderer.strapline.runs[0].text").maybeStringVal?.nullifyIfEmpty()
+					val topicBrowseId =
+						ChunkParser.parseId(sharedContainer.path("header.musicCarouselShelfBasicHeaderRenderer.title.runs[0].navigationEndpoint"))
+					val topicThumbnail =
+						ChunkParser.parseThumbnail(sharedContainer.path("header.musicCarouselShelfBasicHeaderRenderer.thumbnail"))
+
+					if (topicTitle == null && index != 0) return@forEachIndexed
 
 					sharedContainer.path("contents")
 						?.jsonArray
 						?.forEach { eachItem ->
-
-							println(++c)
 
 							val itemRenderer =
 								eachItem.path("musicTwoRowItemRenderer") ?: eachItem.path("musicResponsiveListItemRenderer")
@@ -105,8 +119,6 @@ fun ResponseParser.parseAlbum(obj: JsonElement?): Album? {
 								eachItem.path("musicTwoRowItemRenderer.navigationEndpoint")
 									?: eachItem.path("musicResponsiveListItemRenderer.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].navigationEndpoint")
 							)
-
-							println(itemType)
 
 							when (index) {
 								0 -> {
@@ -140,21 +152,34 @@ fun ResponseParser.parseAlbum(obj: JsonElement?): Album? {
 
 						}
 
-					if (index != 0) others.add(AlbumListContainer(topic, preContents))
+					if (index != 0 && topicTitle != null) others.add(
+						AlbumListContainer(
+							AlbumListTopic(
+								title = topicTitle,
+								subtitle = topicSubtitle,
+								browseId = topicBrowseId,
+								thumbnail = topicThumbnail
+							),
+							preContents
+						)
+					)
 				}
 		}
 
 	if (title.isEmpty()) return null
 
 	return Album(
-		title,
-		subtitle,
-		secondSubtitle,
-		description,
-		thumbnail,
-		menu,
-		track,
-		others
+		title = title,
+		description = description,
+		yearText = yearText,
+		trackCount = trackCount,
+		albumType = albumType,
+		albumDuration = albumDuration,
+		uploaders = uploaders,
+		thumbnail = thumbnail,
+		menu = menu,
+		track = track,
+		others = others
 	)
 }
 

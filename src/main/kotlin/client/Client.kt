@@ -1,7 +1,6 @@
 package client
 
 import declare.*
-import declare.defaultHttpClient
 
 class Client(
 	visitorData: String = defaultVisitorData

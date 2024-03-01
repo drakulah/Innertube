@@ -13,7 +13,7 @@ data class MoodPreview(
 	val color: Long,
 	val browseId: String,
 	val params: String
-): PreviewParser.ContentPreview()
+) : PreviewParser.ContentPreview()
 
 fun PreviewParser.parseMoodPreview(obj: JsonElement?): MoodPreview? {
 	return MoodPreview(

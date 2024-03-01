@@ -2,8 +2,6 @@ package routes
 
 import client.Client
 import declare.Endpoint
-import declare.WebReqBody
-import declare.WebReqBodyWithBrowse
 import declare.WebReqBodyWithVidListId
 import io.ktor.client.call.*
 import io.ktor.client.request.*

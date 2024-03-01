@@ -4,7 +4,6 @@ import json.maybeStringVal
 import json.path
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.jsonArray
 
 @Serializable
 enum class ItemType {

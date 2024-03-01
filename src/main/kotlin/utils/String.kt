@@ -21,4 +21,4 @@ fun List<String>.mix(strArr: List<String>): List<String> {
 	return this
 }
 
-fun String?.nullifyIfEmpty(): String? = if (this.isNullOrEmpty()) null else this
+fun String?.nullifyIfEmpty(): String? = if (this.isNullOrEmpty()) null else this.trim()

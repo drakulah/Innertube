@@ -25,3 +25,17 @@ fun String?.isMimeTypeOpus(): Boolean = this?.let { Pattern.mimeTypeOpus.matches
 fun String?.isSubscriberCount(): Boolean = this?.let { Pattern.subscriberCount.matches(it) } ?: false
 fun String?.isPlaylistDuration(): Boolean = this?.let { Pattern.playlistDuration.matches(it) } ?: false
 fun String?.isItemType(): Boolean = this?.let { Pattern.itemType.matches(it) } ?: false
+
+fun String?.isMaybeTitle(): Boolean = this?.let {
+	!it.isYearText()
+			&& !it.isSeparatorText()
+			&& !it.isDurationText()
+			&& !it.isAlbumType()
+			&& !it.isTrackCount()
+			&& !it.isTrackPlays()
+			&& !it.isLikeCount()
+			&& !it.isMimeTypeOpus()
+			&& !it.isSubscriberCount()
+			&& !it.isPlaylistDuration()
+			&& !it.isItemType()
+} ?: false

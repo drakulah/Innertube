@@ -40,4 +40,4 @@ replay_pid*
 .externalNativeBuild
 .cxx
 local.properties
-home.json
+_test_.json
