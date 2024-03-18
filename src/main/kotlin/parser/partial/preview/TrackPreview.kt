@@ -46,9 +46,8 @@ fun PreviewParser.parseTrackPreview(obj: JsonElement?): TrackPreview? {
 		).forEach {
 
 			val tempText = it.path("text").maybeStringVal.nullifyIfEmpty() ?: return@forEach
-			val tempType = ChunkParser.parseItemType(it.path("navigationEndpoint"))
 
-			when (tempType) {
+			when (val tempType = ChunkParser.parseItemType(it.path("navigationEndpoint"))) {
 				ItemType.ArtistPreview, ItemType.UserChannelPreview -> {
 					uploaders.add(
 						Uploader(
@@ -88,9 +87,8 @@ fun PreviewParser.parseTrackPreview(obj: JsonElement?): TrackPreview? {
 			?.jsonArray
 			?.forEach {
 				val tempText = it.path("text").maybeStringVal.nullifyIfEmpty() ?: return@forEach
-				val tempType = ChunkParser.parseItemType(it.path("navigationEndpoint"))
 
-				when (tempType) {
+				when (val tempType = ChunkParser.parseItemType(it.path("navigationEndpoint"))) {
 					ItemType.Song, ItemType.Video -> {
 						title = tempText
 						ChunkParser.parseId(it.path("navigationEndpoint"))?.let { e -> id = e }

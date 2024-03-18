@@ -182,6 +182,3 @@ fun ResponseParser.parseAlbum(obj: JsonElement?): Album? {
 		others = others
 	)
 }
-
-
-
