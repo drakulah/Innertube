@@ -1,6 +1,6 @@
 package routes
 
-import client.Client
+import Innertube
 import declare.Endpoint
 import declare.WebReqBodyWithVidListId
 import io.ktor.client.call.*
@@ -9,7 +9,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
-suspend fun Client.upNext(videoId: String, playlistId: String) {
+suspend fun Innertube.upNext(videoId: String, playlistId: String) {
 	val res: JsonElement = this.webHttpClient.post(Endpoint.next) {
 		setBody(
 			Json.encodeToString(WebReqBodyWithVidListId(videoId, playlistId, this@upNext.webContext))

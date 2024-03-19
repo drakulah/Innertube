@@ -1,8 +1,6 @@
-package client
-
 import declare.*
 
-class Client(
+class Innertube(
 	visitorData: String = defaultVisitorData
 ) {
 

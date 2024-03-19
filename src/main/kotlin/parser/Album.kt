@@ -152,7 +152,7 @@ fun ResponseParser.parseAlbum(obj: JsonElement?): Album? {
 
 						}
 
-					if (index != 0 && topicTitle != null) others.add(
+					if (index != 0 && topicTitle != null && preContents.isNotEmpty()) others.add(
 						AlbumListContainer(
 							AlbumListTopic(
 								title = topicTitle,

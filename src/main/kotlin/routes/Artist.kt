@@ -1,6 +1,6 @@
 package routes
 
-import client.Client
+import Innertube
 import declare.Endpoint
 import declare.WebReqBodyWithBrowse
 import io.ktor.client.call.*
@@ -12,7 +12,7 @@ import parser.Artist
 import parser.ResponseParser
 import parser.parseArtist
 
-suspend fun Client.artist(browseId: String): Artist? {
+suspend fun Innertube.artist(browseId: String): Artist? {
 	val res: JsonElement = this.webHttpClient.post(Endpoint.browse) {
 		setBody(
 			Json.encodeToString(WebReqBodyWithBrowse(browseId, this@artist.webContext))

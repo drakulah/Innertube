@@ -11,7 +11,14 @@ import parser.partial.preview.*
 import utils.*
 
 @Serializable
-data class ExploreListTopic(
+data class HomeChip(
+	val title: String,
+	val isCurrent: Boolean,
+	val continuation: String
+)
+
+@Serializable
+data class HomeListTopic(
 	val title: String,
 	val subtitle: String?,
 	val browseId: String?,
@@ -19,21 +26,23 @@ data class ExploreListTopic(
 )
 
 @Serializable
-data class ExploreListContainer(
-	val topic: ExploreListTopic,
+data class HomeListContainer(
+	val topic: HomeListTopic,
 	val preContents: List<PreviewParser.ContentPreview>
 )
 
 @Serializable
-data class Explore(
+data class Home(
+	val chips: List<HomeChip>,
 	val continuation: String?,
-	val contents: List<ExploreListContainer>
+	val contents: List<HomeListContainer>
 )
 
-fun ResponseParser.parseExplore(obj: JsonElement?): Explore? {
+fun ResponseParser.parseHome(obj: JsonElement?): Home? {
 
 	var continuation: String? = null
-	val contents = arrayListOf<ExploreListContainer>()
+	val chips = arrayListOf<HomeChip>()
+	val contents = arrayListOf<HomeListContainer>()
 
 	(obj.path("contents.singleColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer")
 		?: obj.path("continuationContents.sectionListContinuation"))?.let { sharedSection ->
@@ -90,16 +99,14 @@ fun ResponseParser.parseExplore(obj: JsonElement?): Explore? {
 										PreviewParser.parsePlaylistPreview(itemRenderer) ?: return@forEach
 									)
 
-									else -> preContents.add(
-										PreviewParser.parseMoodPreview(eachItem.path("musicNavigationButtonRenderer")) ?: return@forEach
-									)
+									else -> eatFiveStarDoNothing()
 								}
 
 							}
 
 						if (preContents.isNotEmpty()) contents.add(
-							ExploreListContainer(
-								ExploreListTopic(
+							HomeListContainer(
+								HomeListTopic(
 									title = topicTitle,
 									subtitle = topicSubtitle,
 									browseId = topicBrowseId,
@@ -112,7 +119,8 @@ fun ResponseParser.parseExplore(obj: JsonElement?): Explore? {
 			}
 	}
 
-	return Explore(
+	return Home(
+		chips = chips,
 		continuation = continuation,
 		contents = contents
 	)

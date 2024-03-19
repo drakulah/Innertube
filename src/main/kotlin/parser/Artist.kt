@@ -104,7 +104,7 @@ fun ResponseParser.parseArtist(obj: JsonElement?): Artist? {
 
 						}
 
-					others.add(
+					if (preContents.isNotEmpty()) others.add(
 						ArtistListContainer(
 							ArtistListTopic(
 								title = topicTitle,

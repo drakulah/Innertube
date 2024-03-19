@@ -1,6 +1,6 @@
 package routes
 
-import client.Client
+import Innertube
 import declare.Endpoint
 import declare.WebReqBody
 import declare.WebReqBodyWithBrowse
@@ -9,8 +9,11 @@ import io.ktor.client.request.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import parser.Explore
+import parser.ResponseParser
+import parser.parseExplore
 
-suspend fun Client.explore(continuation: String? = null) {
+suspend fun Innertube.explore(continuation: String? = null): Explore? {
 	val res: JsonElement = this.webHttpClient.post(Endpoint.browse) {
 		if (continuation == null) {
 			setBody(
@@ -27,4 +30,6 @@ suspend fun Client.explore(continuation: String? = null) {
 			)
 		}
 	}.body()
+
+	return ResponseParser.parseExplore(res)
 }
