@@ -41,4 +41,4 @@ replay_pid*
 .cxx
 local.properties
 _test_.json
-/src/main/kotlin/Main.kt
+src/main/kotlin/Main.kt

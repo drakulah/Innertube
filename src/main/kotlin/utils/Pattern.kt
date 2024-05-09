@@ -2,7 +2,7 @@ package utils
 
 private object Pattern {
 	val yearText = Regex("^\\d{4}\$")
-	val separatorText = Regex("^(&|,|•|-|_|\\|)\$")
+	val separatorText = Regex("^([&,•\\-_|])\$")
 	val durationText = Regex("^((\\d+:)+)?\\d+\$")
 	val albumType = Regex("^(EP|Album|Single)\$")
 	val trackCount = Regex("^[0-9]+\\s(song|track)s?\$")
@@ -10,8 +10,9 @@ private object Pattern {
 	val likeCount = Regex("^(\\d+(?:\\.\\d+)?)[B-Mb-m]?(\\slikes?)?\$")
 	val mimeTypeOpus = Regex("^audio/(webm|mp4); codecs=\"opus\"\$")
 	val subscriberCount = Regex("^(\\d+(?:\\.\\d+)?)[B-Mb-m]?(\\ssubscribers?)?\$")
-	val playlistDuration = Regex("^(\\d+(?:\\.\\d+)?)\\+?\\s(minute|hour|day)s?")
-	val itemType = Regex("^(EP|Album|Single|Artist|Video|Song|Playlist)\$")
+	val playlistDuration = Regex("^((\\d+(?:\\.\\d+)?)\\+?\\s(minute|hour|day)s?(,\\s)?)+\$")
+	val dateText = Regex("^\\w+\\s\\d\\d?,\\s\\d{4}\$")
+	val itemType = listOf("EP", "Episode", "Profile", "Podcast", "Album", "Single", "Artist", "Video", "Song", "Playlist")
 }
 
 fun String?.isYearText(): Boolean = this?.let { Pattern.yearText.matches(it) } ?: false
@@ -24,7 +25,8 @@ fun String?.isLikeCount(): Boolean = this?.let { Pattern.likeCount.matches(it) }
 fun String?.isMimeTypeOpus(): Boolean = this?.let { Pattern.mimeTypeOpus.matches(it) } ?: false
 fun String?.isSubscriberCount(): Boolean = this?.let { Pattern.subscriberCount.matches(it) } ?: false
 fun String?.isPlaylistDuration(): Boolean = this?.let { Pattern.playlistDuration.matches(it) } ?: false
-fun String?.isItemType(): Boolean = this?.let { Pattern.itemType.matches(it) } ?: false
+fun String?.isItemType(): Boolean = this?.let { it in Pattern.itemType } ?: false
+fun String?.isDateText(): Boolean = this?.let { Pattern.dateText.matches(it) } ?: false
 
 fun String?.isMaybeTitle(): Boolean = this?.let {
 	!it.isYearText()
@@ -38,4 +40,5 @@ fun String?.isMaybeTitle(): Boolean = this?.let {
 			&& !it.isSubscriberCount()
 			&& !it.isPlaylistDuration()
 			&& !it.isItemType()
+			&& !it.isDateText()
 } ?: false

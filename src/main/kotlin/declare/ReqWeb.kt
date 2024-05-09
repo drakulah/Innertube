@@ -33,3 +33,16 @@ data class WebReqBodyWithVidListId(
 	val playlistId: String,
 	val context: WebReqContext
 )
+
+@Serializable
+data class WebReqBodyWithQuery(
+	val query: String,
+	val context: WebReqContext
+)
+
+@Serializable
+data class WebReqBodyWithQueryAndParams(
+	val query: String,
+	val params: String,
+	val context: WebReqContext
+)

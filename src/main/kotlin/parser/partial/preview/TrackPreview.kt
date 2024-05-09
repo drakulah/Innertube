@@ -33,9 +33,12 @@ fun PreviewParser.parseTrackPreview(obj: JsonElement?): TrackPreview? {
 	/************************************************/
 
 	obj?.let { raw ->
-		id = ChunkParser.parseId(raw.path("navigationEndpoint"))
-		title = obj.path("title.runs[0].text").maybeStringVal?.nullifyIfEmpty()
-		durationText = obj.path("lengthText.runs[0].text").maybeStringVal?.nullifyIfEmpty()
+		id = ChunkParser.parseId(
+			raw.path("navigationEndpoint")
+				?: raw.path("title.runs[0].navigationEndpoint")
+		)
+		title = raw.path("title.runs[0].text").maybeStringVal?.nullifyIfEmpty()
+		durationText = raw.path("lengthText.runs[0].text").maybeStringVal?.nullifyIfEmpty()
 
 		mixedJsonArray(
 			raw.path("subtitle.runs"),
@@ -89,7 +92,7 @@ fun PreviewParser.parseTrackPreview(obj: JsonElement?): TrackPreview? {
 				val tempText = it.path("text").maybeStringVal.nullifyIfEmpty() ?: return@forEach
 
 				when (val tempType = ChunkParser.parseItemType(it.path("navigationEndpoint"))) {
-					ItemType.Song, ItemType.Video -> {
+					ItemType.Song, ItemType.Video, ItemType.Podcast -> {
 						title = tempText
 						ChunkParser.parseId(it.path("navigationEndpoint"))?.let { e -> id = e }
 					}

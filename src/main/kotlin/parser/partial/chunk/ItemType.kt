@@ -9,6 +9,7 @@ import kotlinx.serialization.json.JsonElement
 enum class ItemType {
 	Song,
 	Video,
+	Podcast,
 	AlbumPreview,
 	ArtistPreview,
 	PlaylistPreview,
@@ -28,6 +29,8 @@ fun ChunkParser.parseItemType(obj: JsonElement?): ItemType? {
 		"MUSIC_PAGE_TYPE_USER_CHANNEL" -> ItemType.UserChannelPreview
 		"MUSIC_PAGE_TYPE_PLAYLIST" -> ItemType.PlaylistPreview
 		"MUSIC_VIDEO_TYPE_OMV", "MUSIC_VIDEO_TYPE_UGC" -> ItemType.Video
+		"MUSIC_PAGE_TYPE_NON_MUSIC_AUDIO_TRACK_PAGE" -> ItemType.Podcast
+
 		else -> null
 	}
 }
