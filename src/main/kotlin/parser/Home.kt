@@ -1,5 +1,6 @@
 package parser
 
+import json.maybeBoolVal
 import json.maybeStringVal
 import json.path
 import kotlinx.serialization.Serializable
@@ -38,7 +39,7 @@ data class Home(
 	val contents: List<HomeListContainer>
 )
 
-fun ResponseParser.parseHome(obj: JsonElement?): Home? {
+fun ResponseParser.parseHome(obj: JsonElement?): Home {
 
 	var continuation: String? = null
 	val chips = arrayListOf<HomeChip>()
@@ -48,6 +49,24 @@ fun ResponseParser.parseHome(obj: JsonElement?): Home? {
 		?: obj.path("continuationContents.sectionListContinuation"))?.let { sharedSection ->
 
 		continuation = ChunkParser.parseContinuation(sharedSection.path("continuations[0]"))
+
+		sharedSection.path("header.chipCloudRenderer.chips")
+			?.jsonArray
+			?.forEach { eachChip ->
+
+				eachChip.path("chipCloudChipRenderer")
+					?.jsonObject
+					?.let { sharedChip ->
+						chips.add(
+							HomeChip(
+								isCurrent =  sharedChip.path("isSelected").maybeBoolVal ?: false,
+								title = sharedChip.path("text.runs[0].text").maybeStringVal?.nullifyIfEmpty() ?: return@let,
+								continuation = sharedChip.path("navigationEndpoint.browseEndpoint.params").maybeStringVal?.nullifyIfEmpty()
+									?: return@let,
+							)
+						)
+					}
+			}
 
 		sharedSection.path("contents")
 			?.jsonArray
